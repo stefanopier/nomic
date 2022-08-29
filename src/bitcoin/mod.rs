@@ -63,6 +63,12 @@ pub struct Bitcoin {
     pub(crate) reward_pool: Coin<Nbtc>,
 }
 
+impl Bitcoin {
+    pub fn reward_pool(&self) -> Coin<Nbtc> {
+        self.reward_pool.amount.into()
+    }
+}
+
 pub type ConsensusKey = [u8; 32];
 
 #[derive(Call, Query, Client, Clone)]
@@ -369,6 +375,10 @@ pub struct SignatoryKeys {
 }
 
 impl SignatoryKeys {
+    pub fn explode(self) -> (Map<ConsensusKey, Xpub>, Map<Xpub, ()>) {
+        (self.by_cons, self.xpubs)
+    }
+
     pub fn map(&self) -> &Map<ConsensusKey, Xpub> {
         &self.by_cons
     }

@@ -1,7 +1,5 @@
 use crate::bitcoin::Bitcoin;
 
-#[cfg(feature = "full")]
-use orga::migrate::{exec_migration, Migrate};
 use orga::plugins::sdk_compat::{sdk, sdk::Tx as SdkTx, ConvertSdkTx};
 use orga::prelude::*;
 use orga::Error;
@@ -48,57 +46,35 @@ impl InnerApp {
         self.bitcoin.accounts.give_from_funding_all()?;
         Ok(())
     }
-}
 
-#[cfg(feature = "full")]
-impl Migrate<nomicv2::app::InnerApp> for InnerApp {
-    fn migrate(&mut self, legacy: nomicv2::app::InnerApp) -> Result<()> {
-        self.community_pool.migrate(legacy.community_pool())?;
-        self.incentive_pool.migrate(legacy.incentive_pool())?;
+    pub fn community_pool(&self) -> Coin<Nom> {
+        self.community_pool.amount.into()
+    }
 
-        self.staking_rewards.migrate(legacy.staking_rewards())?;
-        self.dev_rewards.migrate(legacy.dev_rewards())?;
-        self.community_pool_rewards
-            .migrate(legacy.community_pool_rewards())?;
-        self.incentive_pool_rewards
-            .migrate(legacy.incentive_pool_rewards())?;
+    pub fn incentive_pool(&self) -> Coin<Nom> {
+        self.incentive_pool.amount.into()
+    }
 
-        self.accounts.migrate(legacy.accounts)?;
-        self.staking.migrate(legacy.staking)?;
-        self.atom_airdrop.migrate(legacy.atom_airdrop)?;
+    pub fn staking_rewards(&self) -> Faucet<Nom> {
+        self.staking_rewards.clone()
+    }
 
-        Ok(())
+    pub fn dev_rewards(&self) -> Faucet<Nom> {
+        self.dev_rewards.clone()
+    }
+
+    pub fn community_pool_rewards(&self) -> Faucet<Nom> {
+        self.community_pool_rewards.clone()
+    }
+
+    pub fn incentive_pool_rewards(&self) -> Faucet<Nom> {
+        self.incentive_pool_rewards.clone()
     }
 }
 
 #[cfg(feature = "full")]
 mod abci {
     use super::*;
-
-    impl InitChain for InnerApp {
-        fn init_chain(&mut self, _ctx: &InitChainCtx) -> Result<()> {
-            self.staking.max_validators = 40;
-            self.staking.max_offline_blocks = 1000;
-            self.staking.downtime_jail_seconds = 60 * 30; // 30 minutes
-            self.staking.slash_fraction_downtime = (Amount::new(1) / Amount::new(100))?;
-            self.staking.slash_fraction_double_sign = (Amount::new(1) / Amount::new(4))?;
-            self.staking.min_self_delegation_min = 0;
-
-            let old_home_path = nomicv2::orga::abci::Node::<()>::home(nomicv2::app::CHAIN_ID);
-            exec_migration(self, old_home_path.join("merk"), &[0, 1, 0])?;
-
-            self.accounts.allow_transfers(true);
-            self.bitcoin.accounts.allow_transfers(true);
-
-            let sr_address = STRATEGIC_RESERVE_ADDRESS.parse().unwrap();
-            self.accounts.add_transfer_exception(sr_address)?;
-
-            let vb_address = VALIDATOR_BOOTSTRAP_ADDRESS.parse().unwrap();
-            self.accounts.add_transfer_exception(vb_address)?;
-
-            Ok(())
-        }
-    }
 
     impl BeginBlock for InnerApp {
         fn begin_block(&mut self, ctx: &BeginBlockCtx) -> Result<()> {
@@ -170,12 +146,9 @@ impl<S: Symbol> Airdrop<S> {
         let amount = self.claimable.balance(signer)?;
         self.claimable.take_as_funding(amount)
     }
-}
 
-#[cfg(feature = "full")]
-impl Migrate<nomicv2::app::Airdrop<nomicv2::app::Nom>> for Airdrop<Nom> {
-    fn migrate(&mut self, legacy: nomicv2::app::Airdrop<nomicv2::app::Nom>) -> Result<()> {
-        self.claimable.migrate(legacy.accounts())
+    pub fn accounts(self) -> Accounts<S> {
+        self.claimable
     }
 }
 

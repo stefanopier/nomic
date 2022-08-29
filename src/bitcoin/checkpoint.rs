@@ -171,6 +171,12 @@ pub struct CheckpointQueue {
     index: u32,
 }
 
+impl CheckpointQueue {
+    pub fn explode(self) -> (Deque<Checkpoint>, u32) {
+        (self.queue, self.index)
+    }
+}
+
 #[derive(Deref)]
 pub struct CompletedCheckpoint<'a>(Ref<'a, Checkpoint>);
 

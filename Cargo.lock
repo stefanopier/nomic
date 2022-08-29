@@ -4,8 +4,8 @@ version = 3
 
 [[package]]
 name = "abci2"
-version = "0.1.3-alpha.0"
-source = "git+https://github.com/nomic-io/abci2?rev=f8e218c4d7170b2cec85e21b923644871a44d1b0#f8e218c4d7170b2cec85e21b923644871a44d1b0"
+version = "0.1.3"
+source = "git+https://github.com/nomic-io/abci2?rev=e9d12675bcc8baffe45c976cd6d2a7b76b916da7#e9d12675bcc8baffe45c976cd6d2a7b76b916da7"
 dependencies = [
  "log",
  "prost",
@@ -861,12 +861,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs_extra"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2022715d62ab30faffd124d40b76f4134a550a87792276512b18d63272333394"
-
-[[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1307,27 +1301,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
 
 [[package]]
-name = "jemalloc-sys"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d3b9f3f5c9b31aa0f5ed3260385ac205db665baa41d49bb8338008ae94ede45"
-dependencies = [
- "cc",
- "fs_extra",
- "libc",
-]
-
-[[package]]
-name = "jemallocator"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43ae63fcfc45e99ab3d1b29a46782ad679e98436c3169d15a167a1108a724b69"
-dependencies = [
- "jemalloc-sys",
- "libc",
-]
-
-[[package]]
 name = "jobserver"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1488,25 +1461,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "merk"
-version = "1.0.0"
-source = "git+https://github.com/nomic-io/merk?rev=e9038a659e1ad3cf13720b57be88e2845d0d6a01#e9038a659e1ad3cf13720b57be88e2845d0d6a01"
-dependencies = [
- "blake3",
- "byteorder",
- "colored",
- "ed 0.2.2-alpha.0",
- "failure",
- "hex",
- "jemallocator",
- "num_cpus",
- "rand 0.8.5",
- "rocksdb",
- "thiserror",
- "time 0.1.44",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1618,31 +1572,6 @@ dependencies = [
 
 [[package]]
 name = "nomic"
-version = "2.0.1"
-source = "git+https://github.com/nomic-io/nomic?branch=v2-legacy-testnet#41b8113633775f50091861209508c2afb42c9d1c"
-dependencies = [
- "base64",
- "bech32",
- "bitcoin 0.27.1",
- "bitcoincore-rpc",
- "bitcoind",
- "clap",
- "csv",
- "ed 0.3.0",
- "futures",
- "js-sys",
- "orga 0.2.0",
- "secp256k1 0.21.3",
- "serde",
- "serde_json",
- "tendermint-rpc",
- "thiserror",
- "tokio",
- "toml_edit 0.13.4",
-]
-
-[[package]]
-name = "nomic"
 version = "3.0.0"
 dependencies = [
  "base64",
@@ -1660,8 +1589,7 @@ dependencies = [
  "futures",
  "js-sys",
  "mutagen",
- "nomic 2.0.1",
- "orga 0.3.0",
+ "orga",
  "pretty_env_logger",
  "rand 0.8.5",
  "reqwest",
@@ -1811,52 +1739,8 @@ dependencies = [
 
 [[package]]
 name = "orga"
-version = "0.2.0"
-source = "git+https://github.com/nomic-io/orga?branch=v2-legacy-testnet#2d07f6078dd1f0406a6cdb1cf21c0cbea3687693"
-dependencies = [
- "abci2",
- "async-trait",
- "base64",
- "bech32",
- "ed 0.3.0",
- "ed25519-dalek",
- "flate2",
- "futures-lite",
- "hex",
- "hex-literal",
- "home",
- "is_executable",
- "js-sys",
- "log",
- "merk 1.0.0 (git+https://github.com/nomic-io/merk?rev=e9038a659e1ad3cf13720b57be88e2845d0d6a01)",
- "num-rational",
- "num-traits",
- "orga-macros 0.2.2",
- "prost",
- "reqwest",
- "ripemd",
- "rust_decimal",
- "rust_decimal_macros",
- "secp256k1 0.21.3",
- "seq-macro",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tendermint",
- "tendermint-proto",
- "tendermint-rpc",
- "thiserror",
- "toml_edit 0.2.1",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "orga"
 version = "0.3.0"
-source = "git+https://github.com/nomic-io/orga.git?branch=v4-testnet#853fcf5129d559a2c5fbda314825c585e7a8ec0b"
+source = "git+https://github.com/nomic-io/orga?branch=v3-legacy#580ae2157dcd4d4e98167c8159b238e5b049d236"
 dependencies = [
  "abci2",
  "async-trait",
@@ -1872,11 +1756,10 @@ dependencies = [
  "is_executable",
  "js-sys",
  "log",
- "merk 1.0.0 (git+https://github.com/nomic-io/merk?rev=a2e46ed40c7b7eeaaed7a94654c18413728f7b8d)",
+ "merk",
  "num-rational",
  "num-traits",
- "orga 0.2.0",
- "orga-macros 0.2.4",
+ "orga-macros",
  "prost",
  "reqwest",
  "ripemd",
@@ -1900,19 +1783,8 @@ dependencies = [
 
 [[package]]
 name = "orga-macros"
-version = "0.2.2"
-source = "git+https://github.com/nomic-io/orga?branch=v2-legacy-testnet#2d07f6078dd1f0406a6cdb1cf21c0cbea3687693"
-dependencies = [
- "heck 0.3.3",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "orga-macros"
 version = "0.2.4"
-source = "git+https://github.com/nomic-io/orga.git?branch=v4-testnet#853fcf5129d559a2c5fbda314825c585e7a8ec0b"
+source = "git+https://github.com/nomic-io/orga?branch=v3-legacy#580ae2157dcd4d4e98167c8159b238e5b049d236"
 dependencies = [
  "heck 0.3.3",
  "proc-macro2",
@@ -2098,9 +1970,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.9.0"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
+checksum = "71adf41db68aa0daaefc69bb30bcd68ded9b9abaad5d1fbb6304c4fb390e083e"
 dependencies = [
  "bytes",
  "prost-derive",
@@ -2108,9 +1980,9 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9cc1a3263e07e0bf68e96268f37665207b49560d98739662cdfaae215c720fe"
+checksum = "7b670f45da57fb8542ebdbb6105a925fe571b67f9e7ed9f47a06a84e72b4e7cc"
 dependencies = [
  "anyhow",
  "itertools",
@@ -2121,9 +1993,9 @@ dependencies = [
 
 [[package]]
 name = "prost-types"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "534b7a0e836e3c482d2693070f982e39e7611da9695d4d1f5a4b186b51faef0a"
+checksum = "2d0a014229361011dc8e69c8a1ec6c2e8d0f2af7c91e3ea3f5b2170298461e68"
 dependencies = [
  "bytes",
  "prost",
@@ -2601,17 +2473,6 @@ dependencies = [
 
 [[package]]
 name = "secp256k1"
-version = "0.21.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c42e6f1735c5f00f51e43e28d6634141f2bcad10931b2609ddd74a86d751260"
-dependencies = [
- "bitcoin_hashes",
- "rand 0.6.5",
- "secp256k1-sys 0.4.2",
-]
-
-[[package]]
-name = "secp256k1"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26947345339603ae8395f68e2f3d85a6b0a8ddfe6315818e80b8504415099db0"
@@ -2983,9 +2844,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint"
-version = "0.23.5"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df8150cb636f400ead6de6f4893824d40ecf71214c5d9f8a1d445b5f38fff7b3"
+checksum = "3ca881fa4dedd2b46334f13be7fbc8cc1549ba4be5a833fe4e73d1a1baaf7949"
 dependencies = [
  "async-trait",
  "bytes",
@@ -3012,9 +2873,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-config"
-version = "0.23.5"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5a5c41141b56f1e0463182d910b8ccb84fd4abe61a4290a89794d44ad3e15a9"
+checksum = "f6c56ee93f4e9b7e7daba86d171f44572e91b741084384d0ae00df7991873dfd"
 dependencies = [
  "flex-error",
  "serde",
@@ -3026,9 +2887,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-proto"
-version = "0.23.5"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10ba5f19afd52d69aa139cbf2a2ad129673a87aebeb66742b852a4d91b482e7b"
+checksum = "b71f925d74903f4abbdc4af0110635a307b3cb05b175fdff4a7247c14a4d0874"
 dependencies = [
  "bytes",
  "flex-error",
@@ -3044,9 +2905,9 @@ dependencies = [
 
 [[package]]
 name = "tendermint-rpc"
-version = "0.23.5"
+version = "0.23.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c4a92790ed1f844984ce78436c9bdd0931034b387ee6158f0f0731956285d6f"
+checksum = "a13e63f57ee05a1e927887191c76d1b139de9fa40c180b9f8727ee44377242a6"
 dependencies = [
  "async-trait",
  "bytes",

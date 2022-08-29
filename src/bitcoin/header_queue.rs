@@ -257,6 +257,16 @@ pub struct HeaderQueue {
     config: Config,
 }
 
+impl HeaderQueue {
+    pub fn explode(self) -> (Deque<WorkHeader>, Adapter<Uint256>) {
+        (self.deque, self.current_work)
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+}
+
 impl State for HeaderQueue {
     type Encoding = (
         <Deque<WorkHeader> as State>::Encoding,

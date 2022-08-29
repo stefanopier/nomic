@@ -9,6 +9,10 @@ pub struct OutpointSet {
 }
 
 impl OutpointSet {
+    pub fn explode(self) -> (Map<(u64, Outpoint), ()>, Map<Outpoint, ()>) {
+        (self.expiration_queue, self.outpoints)
+    }
+
     #[query]
     pub fn contains(&self, outpoint: Outpoint) -> Result<bool> {
         self.outpoints.contains_key(outpoint)
