@@ -317,14 +317,35 @@ impl<'a> BuildingCheckpointMut<'a> {
         Ok(input.est_vsize())
     }
 
-    pub fn advance(
-        self,
-    ) -> Result<(
-        bitcoin::OutPoint,
-        u64,
-        Vec<ReadOnly<Input>>,
-        Vec<ReadOnly<Output>>,
-    )> {
+    pub fn push_input_front(
+        &mut self,
+        prevout: bitcoin::OutPoint,
+        sigset: &SignatorySet,
+        dest: &[u8],
+        amount: u64,
+    ) -> Result<u64> {
+        let script_pubkey = sigset.output_script(dest)?;
+        let redeem_script = sigset.redeem_script(dest)?;
+
+        // TODO: need a better way to initialize state types from values?
+        self.inputs.push_front((
+            Adapter::new(prevout),
+            Adapter::new(script_pubkey),
+            Adapter::new(redeem_script),
+            sigset.index(),
+            dest.encode()?.into(),
+            amount,
+            sigset.est_witness_vsize(),
+            <ThresholdSig as State>::Encoding::default(),
+        ))?;
+
+        let mut input = self.inputs.get_mut(0)?.unwrap();
+        input.sigs.from_sigset(sigset)?;
+
+        Ok(input.est_vsize())
+    }
+
+    pub fn advance(self) -> Result<(bitcoin::OutPoint, u64)> {
         let mut checkpoint = self.0;
 
         checkpoint.status = CheckpointStatus::Signing;
@@ -335,23 +356,9 @@ impl<'a> BuildingCheckpointMut<'a> {
         };
         checkpoint.outputs.push_front(Adapter::new(reserve_out))?;
 
-        let mut excess_inputs = vec![];
-        while checkpoint.inputs.len() > MAX_INPUTS {
-            let removed_input = checkpoint.inputs.pop_back()?.unwrap();
-            excess_inputs.push(removed_input);
-        }
-
-        let mut excess_outputs = vec![];
-        while checkpoint.outputs.len() > MAX_OUTPUTS {
-            let removed_output = checkpoint.outputs.pop_back()?.unwrap();
-            excess_outputs.push(removed_output);
-        }
-
         let mut in_amount = 0;
-        dbg!(checkpoint.inputs.len());
         for i in 0..checkpoint.inputs.len() {
             let input = checkpoint.inputs.get(i)?.unwrap();
-            dbg!(input.amount);
             in_amount += input.amount;
         }
 
@@ -389,12 +396,7 @@ impl<'a> BuildingCheckpointMut<'a> {
             vout: 0,
         };
 
-        Ok((
-            reserve_outpoint,
-            reserve_value,
-            excess_inputs,
-            excess_outputs,
-        ))
+        Ok((reserve_outpoint, reserve_value))
     }
 }
 
@@ -534,10 +536,16 @@ impl CheckpointQueue {
 
         #[cfg(feature = "full")]
         {
+            // don't step if we're still signing (can only be signing one
+            // checkpoint at a time)
             if self.signing()?.is_some() {
                 return Ok(());
             }
 
+            // check if it's time to progress yet (min interval time has passed
+            // since prev checkpoint, and either max interval has passed or
+            // there is a pending deposit or withdrawal). return early if
+            // conditions aren't met
             if !self.queue.is_empty() {
                 let now = self
                     .context::<Time>()
@@ -550,6 +558,7 @@ impl CheckpointQueue {
 
                 if elapsed < MAX_CHECKPOINT_INTERVAL || self.index == 0 {
                     let building = self.building()?;
+
                     let has_pending_deposit = if self.index == 0 {
                         building.inputs.len() > 0
                     } else {
@@ -564,48 +573,34 @@ impl CheckpointQueue {
                 }
             }
 
-            if self.maybe_push(sig_keys)?.is_none() {
+            // try to push Building checkpoint if we don't already have 2 of them
+            let skip_building = if self.index > 0 {
+                let second = self.get(self.index - 1)?;
+                matches!(second.status, CheckpointStatus::Building)
+            } else {
+                false
+            };
+            if !skip_building && self.maybe_push_building(sig_keys)?.is_none() {
                 return Ok(());
             }
 
+            // move excess inputs/outputs from older Building cp to newer
+            // Building cp, returning early if there is more (we don't move it
+            // all at once, broken up so blocks don't take forever)
+            if self.maybe_move_excess()? {
+                return Ok(());
+            }
+
+            // advance checkpoint to Signing
             if self.index > 0 {
-                let second = self.get_mut(self.index - 1)?;
-                let sigset = second.sigset.clone();
-                let (reserve_outpoint, reserve_value, excess_inputs, excess_outputs) =
-                    BuildingCheckpointMut(second).advance()?;
-
-                let mut building = self.building_mut()?;
-
-                building.push_input(
-                    reserve_outpoint,
-                    &sigset,
-                    &vec![0u8], // TODO: double-check safety
-                    reserve_value,
-                )?;
-
-                for input in excess_inputs {
-                    let shares = input.sigs.shares()?;
-                    let data = input.into_inner().into();
-                    building.inputs.push_back(data)?;
-                    building
-                        .inputs
-                        .back_mut()?
-                        .unwrap()
-                        .sigs
-                        .from_shares(shares)?;
-                }
-
-                for output in excess_outputs {
-                    let data = output.into_inner();
-                    building.outputs.push_back(data)?;
-                }
+                self.advance_building(sig_keys)?;
             }
 
             Ok(())
         }
     }
 
-    fn maybe_push(
+    fn maybe_push_building(
         &mut self,
         sig_keys: &Map<ConsensusKey, Xpub>,
     ) -> Result<Option<BuildingCheckpointMut>> {
@@ -636,6 +631,89 @@ impl CheckpointQueue {
             building.sigset = sigset;
 
             Ok(Some(building))
+        }
+    }
+
+    pub fn maybe_move_excess(&mut self) -> Result<bool> {
+        if self.queue.len() < 2 {
+            return Ok(false);
+        }
+
+        let mut has_more = false;
+
+        let second = self.get_mut(self.index - 1)?;
+        let mut advancing = BuildingCheckpointMut(second);
+
+        let mut excess_inputs = vec![];
+        if advancing.inputs.len() > MAX_INPUTS {
+            let remove_count = (advancing.inputs.len() - MAX_INPUTS).min(MAX_INPUTS);
+
+            for _ in 0..remove_count {
+                let removed_input = advancing.inputs.pop_back()?.unwrap();
+                excess_inputs.push(removed_input);
+            }
+
+            if advancing.inputs.len() > MAX_INPUTS {
+                has_more = true;
+            }
+        }
+
+        let mut excess_outputs = vec![];
+        if advancing.outputs.len() > MAX_OUTPUTS {
+            let remove_count = (advancing.inputs.len() - MAX_INPUTS).min(MAX_INPUTS);
+
+            for _ in 0..remove_count {
+                let removed_output = advancing.outputs.pop_back()?.unwrap();
+                excess_outputs.push(removed_output);
+            }
+
+            if advancing.outputs.len() > MAX_OUTPUTS {
+                has_more = true;
+            }
+        }
+
+        let mut building = self.building_mut()?;
+
+        for input in excess_inputs {
+            let shares = input.sigs.shares()?;
+            let data = input.into_inner().into();
+            building.inputs.push_back(data)?;
+            building
+                .inputs
+                .back_mut()?
+                .unwrap()
+                .sigs
+                .from_shares(shares)?;
+        }
+
+        for output in excess_outputs {
+            let data = output.into_inner();
+            building.outputs.push_back(data)?;
+        }
+
+        Ok(has_more)
+    }
+
+    pub fn advance_building(&mut self, sig_keys: &Map<ConsensusKey, Xpub>) -> Result<()> {
+        #[cfg(not(feature = "full"))]
+        unimplemented!();
+
+        #[cfg(feature = "full")]
+        {
+            let second = self.get_mut(self.index - 1)?;
+            let sigset = second.sigset.clone();
+            let (reserve_outpoint, reserve_value) = BuildingCheckpointMut(second).advance()?;
+
+            let mut building = self.building_mut()?;
+
+            building.push_input_front(
+                reserve_outpoint,
+                &sigset,
+                &vec![0u8], // TODO: double-check safety
+                reserve_value,
+            )?;
+
+            Ok(())
         }
     }
 
