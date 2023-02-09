@@ -230,6 +230,19 @@ impl Migrate<nomicv3::app::InnerApp> for InnerApp {
 mod abci {
     use super::*;
 
+    fn check_stop_time(now_seconds: i64) -> Result<()> {
+        if let Ok(stop_time) = std::env::var("STOP_TIME") {
+            let stop_time = stop_time
+                .parse::<i64>()
+                .map_err(|_| Error::App("STOP_TIME must be unix seconds".to_string()))?;
+            if now_seconds > stop_time {
+                return Err(Error::App("Stop time has been reached".to_string()));
+            }
+        }
+
+        Ok(())
+    }
+
     impl InitChain for InnerApp {
         fn init_chain(&mut self, _ctx: &InitChainCtx) -> Result<()> {
             self.staking.max_validators = 30;
@@ -263,6 +276,9 @@ mod abci {
 
     impl BeginBlock for InnerApp {
         fn begin_block(&mut self, ctx: &BeginBlockCtx) -> Result<()> {
+            if let Some(ref time) = ctx.header.time {
+                check_stop_time(time.seconds)?;
+            }
             self.staking.begin_block(ctx)?;
             self.ibc.begin_block(ctx)?;
 
@@ -813,7 +829,9 @@ impl ConvertSdkTx for InnerApp {
                             .parse::<Address>()
                             .map_err(|_| Error::Ibc("Invalid sender address".into()))?;
 
-                        let timestamp = msg.timeout_timestamp.parse::<u64>()
+                        let timestamp = msg
+                            .timeout_timestamp
+                            .parse::<u64>()
                             .map_err(|_| Error::Ibc("Invalid timeout timestamp".into()))?;
                         let timeout_timestamp: IbcAdapter<Timestamp> =
                             Timestamp::from_nanoseconds(timestamp)
