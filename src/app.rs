@@ -298,6 +298,8 @@ mod abci {
 
             self.configure_faucets()?;
 
+            self.upgrade.current_version = vec![CONSENSUS_VERSION].try_into().unwrap();
+
             Ok(())
         }
     }
