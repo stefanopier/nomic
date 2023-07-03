@@ -3,8 +3,15 @@ use crate::bitcoin::adapter::Adapter;
 use crate::bitcoin::Bitcoin;
 use bitcoin::util::merkleblock::PartialMerkleTree;
 use bitcoin::Transaction;
+use orga::coins::{
+    Accounts, Address, Amount, Coin, Faucet, FaucetOptions, Give, Staking, Symbol, Take,
+};
+use orga::context::GetContext;
 use orga::cosmrs::bank::MsgSend;
 use orga::encoding::{Decode, Encode};
+use orga::plugins::Time;
+use std::time::Duration;
+
 use orga::ibc::ibc_rs::core::ics04_channel::timeout::TimeoutHeight;
 use orga::ibc::ibc_rs::core::ics24_host::identifier::{ChannelId, PortId};
 use orga::ibc::ibc_rs::timestamp::Timestamp;
@@ -66,6 +73,52 @@ pub struct InnerApp {
 impl InnerApp {
     #[call]
     pub fn noop(&mut self) {}
+
+    #[cfg(feature = "full")]
+    fn configure_faucets(&mut self) -> Result<()> {
+        let day = 60 * 60 * 24;
+        let year = Duration::from_secs(60 * 60 * 24 * 365);
+        let two_thirds = (Amount::new(2) / Amount::new(3))?;
+
+        let genesis_time = self
+            .context::<Time>()
+            .ok_or_else(|| Error::App("No Time context available".into()))?
+            .seconds;
+
+        self.staking_rewards.configure(FaucetOptions {
+            num_periods: 9,
+            period_length: year,
+            total_coins: 49_875_000_000_000.into(),
+            period_decay: two_thirds,
+            start_seconds: genesis_time + day,
+        })?;
+
+        self.dev_rewards.configure(FaucetOptions {
+            num_periods: 9,
+            period_length: year,
+            total_coins: 49_875_000_000_000.into(),
+            period_decay: two_thirds,
+            start_seconds: genesis_time + day,
+        })?;
+
+        self.community_pool_rewards.configure(FaucetOptions {
+            num_periods: 9,
+            period_length: year,
+            total_coins: 9_975_000_000_000.into(),
+            period_decay: two_thirds,
+            start_seconds: genesis_time + day,
+        })?;
+
+        self.incentive_pool_rewards.configure(FaucetOptions {
+            num_periods: 9,
+            period_length: year,
+            total_coins: 89_775_000_000_000.into(),
+            period_decay: two_thirds,
+            start_seconds: genesis_time + day,
+        })?;
+
+        Ok(())
+    }
 
     #[call]
     pub fn deposit_rewards(&mut self) -> Result<()> {
@@ -242,6 +295,8 @@ mod abci {
 
             let vb_address = VALIDATOR_BOOTSTRAP_ADDRESS.parse().unwrap();
             self.accounts.add_transfer_exception(vb_address)?;
+
+            self.configure_faucets()?;
 
             Ok(())
         }
