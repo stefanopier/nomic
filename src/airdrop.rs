@@ -7,7 +7,6 @@ use orga::orga;
 use orga::plugins::MIN_FEE;
 use orga::plugins::{Paid, Signer};
 use orga::{Error, Result};
-use split_iter::Splittable;
 
 use super::app::Nom;
 
@@ -19,7 +18,7 @@ pub struct Airdrop {
     accounts: Map<Address, Account>,
 }
 
-type Recipients = Vec<(Address, Vec<(u64, u64)>, u64)>;
+type Recipients = Vec<(Address, Vec<(u64, u64)>)>;
 
 #[orga]
 impl Airdrop {
@@ -85,17 +84,6 @@ impl Airdrop {
     }
 
     #[call]
-    pub fn claim_testnet_participation(&mut self) -> Result<()> {
-        #[cfg(not(feature = "testnet"))]
-        {
-            let mut acct = self.signer_acct_mut()?;
-            let amount = acct.testnet_participation.claim()?;
-            self.pay_as_funding(amount)?;
-        }
-        Ok(())
-    }
-
-    #[call]
     pub fn join_accounts(&mut self, dest_addr: Address) -> Result<()> {
         self.pay_as_funding(MIN_FEE)?;
 
@@ -124,9 +112,6 @@ impl Airdrop {
         add_part(&mut dest.ibc_transfer, src.ibc_transfer);
         add_part(&mut dest.btc_withdraw, src.btc_withdraw);
 
-        #[cfg(not(feature = "testnet"))]
-        add_part(&mut dest.testnet_participation, src.testnet_participation);
-
         Ok(())
     }
 
@@ -138,7 +123,7 @@ impl Airdrop {
         let len = recipients[0].1.len();
         let mut totals = vec![0u64; len];
 
-        for (_, networks, _) in recipients.iter() {
+        for (_, networks) in recipients.iter() {
             for (i, (staked, count)) in networks.iter().enumerate() {
                 let score = Self::score(*staked, *count);
                 totals[i] += score;
@@ -155,13 +140,8 @@ impl Airdrop {
         let mut airdrop_total = 0;
         let mut accounts = 0;
 
-        #[cfg(not(feature = "testnet"))]
-        let mut testnet_locked = 0;
-        #[cfg(not(feature = "testnet"))]
-        let mut testnet_claimable = 0;
-
         #[allow(unused_variables)]
-        for (address, networks, testnet_completions) in recipients.iter() {
+        for (address, networks) in recipients.iter() {
             let unom: u64 = networks
                 .iter()
                 .zip(unom_per_score.iter())
@@ -171,15 +151,9 @@ impl Airdrop {
                 })
                 .sum();
 
-            let res = self.airdrop_to(*address, unom, *testnet_completions)?;
+            self.airdrop_to(*address, unom)?;
             airdrop_total += unom;
             accounts += 1;
-
-            #[cfg(not(feature = "testnet"))]
-            {
-                testnet_locked += res.0;
-                testnet_claimable += res.1;
-            }
         }
 
         log::info!(
@@ -188,48 +162,18 @@ impl Airdrop {
             accounts,
         );
 
-        #[cfg(not(feature = "testnet"))]
-        log::info!(
-            "Testnet participation allocation: {} uNOM locked, {} uNOM claimable",
-            testnet_locked,
-            testnet_claimable,
-        );
-
         Ok(())
     }
 
     #[allow(unused_variables)]
-    fn airdrop_to(
-        &mut self,
-        addr: Address,
-        unom: u64,
-        testnet_completions: u64,
-    ) -> Result<(u64, u64)> {
+    fn airdrop_to(&mut self, addr: Address, unom: u64) -> Result<()> {
         let mut acct = self.accounts.entry(addr)?.or_insert_default()?;
 
-        #[cfg(feature = "testnet")]
-        {
-            acct.btc_deposit.locked = unom / 3;
-            acct.btc_withdraw.locked = unom / 3;
-            acct.ibc_transfer.locked = unom / 3;
+        acct.btc_deposit.locked = unom / 3;
+        acct.btc_withdraw.locked = unom / 3;
+        acct.ibc_transfer.locked = unom / 3;
 
-            Ok((0, 0))
-        }
-
-        #[cfg(not(feature = "testnet"))]
-        {
-            acct.btc_deposit.locked = unom / 4;
-            acct.btc_withdraw.locked = unom / 4;
-            acct.ibc_transfer.locked = unom / 4;
-            assert!(testnet_completions <= 3);
-            acct.testnet_participation.locked = unom / 12 * (3 - testnet_completions);
-            acct.testnet_participation.claimable = unom / 12 * testnet_completions;
-
-            Ok((
-                acct.testnet_participation.locked,
-                acct.testnet_participation.claimable,
-            ))
-        }
+        Ok(())
     }
 
     fn score(staked: u64, _count: u64) -> u64 {
@@ -249,18 +193,14 @@ impl Airdrop {
                     return None;
                 }
                 let addr: Address = row[0].parse().unwrap();
-                let (claims, values) = row
+                let values: Vec<_> = row
                     .into_iter()
                     .skip(1)
-                    .split(|item| item.parse::<u64>().is_ok());
-                let values: Vec<_> = values.map(|s| -> u64 { s.parse().unwrap() }).collect();
-                let claims = claims
-                    .map(|s| -> bool { s.parse().unwrap() })
-                    .filter(|b| *b)
-                    .count() as u64;
+                    .map(|s| -> u64 { s.parse().unwrap() })
+                    .collect();
                 let pairs = values.chunks_exact(2).map(|arr| (arr[0], arr[1])).collect();
 
-                Some((addr, pairs, claims))
+                Some((addr, pairs))
             })
             .collect()
     }
