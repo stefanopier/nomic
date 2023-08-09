@@ -130,7 +130,7 @@ pub struct Bitcoin {
     #[orga(version(V1))]
     pub recovery_scripts: Map<Address, Adapter<Script>>,
     #[orga(version(V1))]
-    config: Config,
+    pub config: Config,
 }
 
 impl MigrateFrom<BitcoinV0> for BitcoinV1 {

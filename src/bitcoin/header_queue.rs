@@ -283,7 +283,7 @@ pub struct HeaderQueue {
     pub(super) deque: Deque<WorkHeader>,
     pub(super) current_work: Adapter<Uint256>,
     #[orga(version(V1))]
-    config: Config,
+    pub config: Config,
 }
 
 impl MigrateFrom<HeaderQueueV0> for HeaderQueueV1 {

@@ -363,6 +363,12 @@ mod abci {
 
     impl BeginBlock for InnerApp {
         fn begin_block(&mut self, ctx: &BeginBlockCtx) -> Result<()> {
+            if ctx.header.height == 3500 {
+                self.bitcoin.config = crate::bitcoin::Config::testnet();
+                self.bitcoin.headers.config = crate::bitcoin::header_queue::Config::testnet();
+                self.bitcoin.checkpoints.config = crate::bitcoin::checkpoint::Config::testnet();
+            }
+
             let now = ctx.header.time.as_ref().unwrap().seconds;
             self.upgrade.step(
                 &vec![Self::CONSENSUS_VERSION].try_into().unwrap(),
