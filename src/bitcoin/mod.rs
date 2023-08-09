@@ -137,7 +137,7 @@ impl MigrateFrom<BitcoinV0> for BitcoinV1 {
     #[allow(unused_mut)]
     fn migrate_from(mut value: BitcoinV0) -> OrgaResult<Self> {
         #[cfg(not(feature = "testnet"))]
-        value.checkpoints.rewind(1607).unwrap();
+        value.checkpoints.rewind(10).unwrap();
 
         Ok(Self {
             headers: value.headers,
