@@ -409,6 +409,7 @@ fn legacy_bin(config: &nomic::network::Config) -> Result<Option<PathBuf>> {
                 (utd, initialized)
             }
         };
+        dbg!(up_to_date, initialized);
 
         // TODO: handle case where node is not initialized, but network is upgraded (can skip legacy binary)
 
@@ -501,35 +502,36 @@ fn legacy_bin(config: &nomic::network::Config) -> Result<Option<PathBuf>> {
 }
 
 async fn relaunch_on_migrate(config: &nomic::network::Config) -> Result<()> {
-    let home = match config.home() {
-        Some(home) => home,
-        None => {
-            log::warn!("Unknown home directory, cannot automatically relaunch on migrate");
-            return Ok(());
-        }
-    };
+    Ok(())
+    // let home = match config.home() {
+    //     Some(home) => home,
+    //     None => {
+    //         log::warn!("Unknown home directory, cannot automatically relaunch on migrate");
+    //         return Ok(());
+    //     }
+    // };
 
-    let mut initial_ver = None;
-    loop {
-        if !home.exists() {
-            continue;
-        }
-        let store = MerkStore::open_readonly(home.join("merk"));
-        let store_ver = store.merk().get_aux(b"consensus_version").unwrap();
-        if initial_ver.is_some() {
-            if store_ver != initial_ver {
-                log::info!(
-                    "Node has migrated from version {:?} to version {:?}, exiting",
-                    initial_ver,
-                    store_ver
-                );
-                std::process::exit(138);
-            }
-        } else {
-            initial_ver = store_ver;
-        }
-        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-    }
+    // let mut initial_ver = None;
+    // loop {
+    //     if !home.exists() {
+    //         continue;
+    //     }
+    //     let store = MerkStore::open_readonly(home.join("merk"));
+    //     let store_ver = store.merk().get_aux(b"consensus_version").unwrap();
+    //     if initial_ver.is_some() {
+    //         if store_ver != initial_ver {
+    //             log::info!(
+    //                 "Node has migrated from version {:?} to version {:?}, exiting",
+    //                 initial_ver,
+    //                 store_ver
+    //             );
+    //             std::process::exit(138);
+    //         }
+    //     } else {
+    //         initial_ver = store_ver;
+    //     }
+    //     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    // }
 }
 
 fn configure_node<P, F>(cfg_path: &P, configure: F)
