@@ -1159,11 +1159,11 @@ async fn deposit(dest: DepositCommitment) -> Result<()> {
         .query(|app| Ok(app.bitcoin.checkpoints.active_sigset()?))
         .await?;
     let script = sigset.output_script(dest.commitment_bytes()?.as_slice())?;
-    let btc_addr = bitcoin::Address::from_script(&script, nomic::bitcoin::NETWORK).unwrap();
+    let btc_addr = bitcoin::Address::from_script(&script, bitcoin::Network::Testnet).unwrap();
 
     let client = reqwest::Client::new();
     let res = client
-        .post("https://testnet-relayer.nomic.io:8443/address")
+        .post("http://localhost:8999/address")
         .query(&[
             ("sigset_index", sigset.index().to_string()),
             ("deposit_addr", btc_addr.to_string()),

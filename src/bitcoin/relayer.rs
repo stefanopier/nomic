@@ -167,7 +167,7 @@ impl Relayer {
                                 dest.commitment_bytes().map_err(|_| reject())?.as_slice(),
                             )
                             .map_err(warp::reject::custom)?,
-                        super::NETWORK,
+                        bitcoin::Network::Testnet,
                     )
                     .unwrap()
                     .to_string();
