@@ -41,6 +41,7 @@ impl MigrateFrom<InnerAppV0> for InnerAppV1 {
 impl MigrateFrom<InnerAppV1> for InnerAppV2 {
     fn migrate_from(mut other: InnerAppV1) -> Result<Self> {
         let testnet_incentive_funds = other.incentive_pool.take(1_000_000_000_000)?;
+        other.bitcoin.headers.config = crate::bitcoin::header_queue::Config::testnet();
         Ok(Self {
             accounts: other.accounts,
             staking: other.staking,
