@@ -1,4 +1,5 @@
 state_sync_rpc = [
+  "http://10.16.57.40:26667",
   "http://10.16.57.40:26667"
 ]
 tendermint_flags = [
@@ -9,7 +10,7 @@ tendermint_flags = [
 ]
 
 legacy_version = "3.0.1"
-upgrade_height = 3150
+upgrade_height = 3050
 
 genesis = """
 {
