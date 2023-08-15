@@ -82,5 +82,5 @@ name = "create-airdrop-snapshot"
 required-features = ["csv"]
 
 [[bin]]
-name = "append-airdrop-snapshot"
+name = "create-testnet-snapshot"
 required-features = ["testnet"]
