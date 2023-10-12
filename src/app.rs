@@ -14,7 +14,7 @@ use orga::coins::{
 };
 use orga::context::GetContext;
 use orga::cosmrs::bank::MsgSend;
-use orga::encoding::{Decode, Encode};
+use orga::encoding::{Decode, Encode, LengthVec};
 use std::time::Duration;
 
 use orga::ibc::ibc_rs::applications::transfer::context::TokenTransferExecutionContext;
@@ -306,6 +306,11 @@ impl InnerApp {
     #[query]
     pub fn app_noop_query(&self) -> Result<()> {
         Ok(())
+    }
+
+    #[query]
+    pub fn current_version(&self) -> Result<Option<LengthVec<u8, u8>>> {
+        Ok(self.upgrade.current_version.get(())?.map(|v| v.clone()))
     }
 }
 
